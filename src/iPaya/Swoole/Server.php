@@ -80,6 +80,8 @@ abstract class Server
     public function __construct(int $port)
     {
         $this->setPort($port);
+
+        $this->initialize();
     }
 
     /**

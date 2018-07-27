@@ -50,7 +50,13 @@ class HttpServer extends Server
     public function __construct(string $documentRoot, int $port = 9080)
     {
         parent::__construct($port);
+
         $this->setDocumentRoot($documentRoot);
+    }
+
+    protected function initialize(): void
+    {
+        parent::initialize();
         $this->setRequestHandler(new RequestHandler());
     }
 
