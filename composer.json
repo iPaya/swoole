@@ -22,7 +22,7 @@
       "src/functions.php"
     ],
     "psr-4": {
-      "iPaya\\Swoole\\": "src/Swoole"
+      "iPaya\\Swoole\\": "src/iPaya/Swoole"
     }
   },
   "require-dev": {
