@@ -1,5 +1,5 @@
 {
-  "name": "ipaya/swoole-server",
+  "name": "ipaya/swoole",
   "minimum-stability": "stable",
   "prefer-stable": true,
   "license": "BSD-3-Clause",
@@ -27,5 +27,10 @@
   },
   "require-dev": {
     "eaglewu/swoole-ide-helper": "dev-master"
+  },
+  "archive": {
+    "exclude": [
+      "!/.idea"
+    ]
   }
 }
