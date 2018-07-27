@@ -7,16 +7,18 @@
 namespace iPaya\Swoole\Events;
 
 
-abstract class SwooleEvent extends Event
+use iPaya\Swoole\Server;
+
+class ServerEvent extends Event
 {
     /**
-     * @var \Swoole\Server|\Swoole\Http\Server|\Swoole\WebSocket\Server
+     * @var Server
      */
     private $server;
 
     /**
      * SwooleEvent constructor.
-     * @param \Swoole\Http\Server|\Swoole\Server|\Swoole\WebSocket\Server $server
+     * @param Server
      */
     public function __construct($server)
     {
@@ -24,7 +26,7 @@ abstract class SwooleEvent extends Event
     }
 
     /**
-     * @return \Swoole\Http\Server|\Swoole\Server|\Swoole\WebSocket\Server
+     * @return Server
      */
     public function getServer()
     {
@@ -32,7 +34,7 @@ abstract class SwooleEvent extends Event
     }
 
     /**
-     * @param \Swoole\Http\Server|\Swoole\Server|\Swoole\WebSocket\Server $server
+     * @param Server
      */
     public function setServer($server): void
     {

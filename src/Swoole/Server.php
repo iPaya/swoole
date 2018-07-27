@@ -7,6 +7,7 @@
 namespace iPaya\Swoole;
 
 
+use iPaya\Swoole\Events\StartServerEvent;
 use iPaya\Swoole\Events\SwooleBufferEmptyEvent;
 use iPaya\Swoole\Events\SwooleBufferFullEvent;
 use iPaya\Swoole\Events\SwooleCloseEvent;
@@ -68,12 +69,33 @@ abstract class Server
     private $port;
 
     /**
+     * @var string 绑定的主机 IP 地址
+     */
+    private $host = '0.0.0.0';
+
+    /**
      *
      * @param int $port
      */
     public function __construct(int $port)
     {
         $this->setPort($port);
+    }
+
+    /**
+     * @return string
+     */
+    public function getHost(): string
+    {
+        return $this->host;
+    }
+
+    /**
+     * @param string $host
+     */
+    public function setHost(string $host): void
+    {
+        $this->host = $host;
     }
 
     /**
@@ -92,6 +114,17 @@ abstract class Server
         $this->port = $port;
     }
 
+    /**
+     * @return bool
+     */
+    protected function beforeStart(): bool
+    {
+        $event = new StartServerEvent($this);
+        $this->trigger('beforeStart', $event);
+
+        return $event->isValid();
+    }
+
     public function start()
     {
         $server = $this->createSwooleServer();
@@ -99,6 +132,10 @@ abstract class Server
 
         $this->registerSwooleSettings();
         $this->registerSwooleEvents();
+
+        if (!$this->beforeStart()) {
+            exit(1);
+        }
 
         $server->start();
     }

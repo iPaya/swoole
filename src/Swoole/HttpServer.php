@@ -8,12 +8,14 @@ namespace iPaya\Swoole;
 
 
 use iPaya\Swoole\Http\Request;
+use iPaya\Swoole\Http\RequestHandler;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response;
 use Swoole\Http\Response as SwooleResponse;
 use Zend\Diactoros\Response\HtmlResponse;
+use Zend\Diactoros\Response\TextResponse;
 
 class HttpServer extends Server
 {
@@ -28,7 +30,7 @@ class HttpServer extends Server
     /**
      * @var string 脚本文件名，此文件为虚拟文件
      */
-    private $scriptFile = 'index.php';
+    private $scriptFile = '/index.php';
     /**
      * @var bool 是否开启 URL 地址重写
      */
@@ -39,10 +41,17 @@ class HttpServer extends Server
     private $debug = false;
 
 
+    /**
+     * HttpServer constructor.
+     *
+     * @param string $documentRoot
+     * @param int $port
+     */
     public function __construct(string $documentRoot, int $port = 9080)
     {
         parent::__construct($port);
         $this->setDocumentRoot($documentRoot);
+        $this->setRequestHandler(new RequestHandler());
     }
 
     /**
@@ -58,41 +67,43 @@ class HttpServer extends Server
     }
 
     /**
-     * TODO: 异常处理
-     *
      * @param SwooleRequest $request
      */
     public function onSwooleRequest(SwooleRequest $request)
     {
-        $uri = $request->server['request_uri'];
-        $file = $this->getDocumentRoot() . $uri;
+        try {
+            $uri = $request->server['request_uri'];
+            $file = $this->getDocumentRoot() . $uri;
 
-        if ($uri == '/' || $uri == $this->getScriptFile()) {
-            // 默认页面
-            $psrResponse = $this->doHandleRequest($request);
-        } else {
-            $extension = pathinfo($uri, PATHINFO_EXTENSION);
-
-            if (is_file($file)) {
-                // 文件存在
-                if ($extension != 'php') {
-                    // 非 PHP 文件，直接发送，推荐使用 Nginx 来处理
-                    $psrResponse = $this->doHandleNonPhpFileRequest($file);
-                } else {
-                    $psrResponse = $this->doHandlePhpFileRequest($file);
-                }
-            } elseif (is_dir($file)) {
-                // 为目录
-                $psrResponse = $this->doHandleDirRequest($file);
+            if ($uri == '/' || $uri == $this->getScriptFile()) {
+                // 默认页面
+                $psrResponse = $this->doHandleRequest($request);
             } else {
-                // 文件不存在
-                if ($this->isEnableRewrite()) {
-                    // 已开启 URL 地址重写
-                    $psrResponse = $this->doHandleRequest($request);
+                $extension = pathinfo($uri, PATHINFO_EXTENSION);
+
+                if (is_file($file)) {
+                    // 文件存在
+                    if ($extension != 'php') {
+                        // 非 PHP 文件，直接发送，推荐使用 Nginx 来处理
+                        $psrResponse = $this->doHandleNonPhpFileRequest($file);
+                    } else {
+                        $psrResponse = $this->doHandlePhpFileRequest($file);
+                    }
+                } elseif (is_dir($file)) {
+                    // 为目录
+                    $psrResponse = $this->doHandleDirRequest($file);
                 } else {
-                    $psrResponse = $this->doHandle404Request($file);
+                    // 文件不存在
+                    if ($this->isEnableRewrite()) {
+                        // 已开启 URL 地址重写
+                        $psrResponse = $this->doHandleRequest($request);
+                    } else {
+                        $psrResponse = $this->doHandle404Request($file);
+                    }
                 }
             }
+        } catch (\Throwable $throwable) {
+            $psrResponse = $this->doHandleThrowable($throwable);
         }
 
         $this->sendResponse($request->fd, $psrResponse);
@@ -128,7 +139,7 @@ class HttpServer extends Server
      */
     public function setScriptFile(string $scriptFile): void
     {
-        $this->scriptFile = '/' . ltrim($scriptFile, '\/');
+        $this->scriptFile = '/' . ltrim($scriptFile, "\/");
     }
 
     /**
@@ -182,9 +193,10 @@ class HttpServer extends Server
      */
     protected function doHandlePhpFileRequest(string $file): ResponseInterface
     {
+        ob_start();
         include $file;
-        $contents = ob_get_clean();
-        return new HtmlResponse($contents, 200);
+
+        return new HtmlResponse(ob_get_clean(), 200);
     }
 
     /**
@@ -228,6 +240,21 @@ class HttpServer extends Server
 
         $html = ob_get_clean();
         return new HtmlResponse($html, 404);
+    }
+
+    /**
+     * @param \Throwable $throwable
+     * @return ResponseInterface
+     */
+    protected function doHandleThrowable(\Throwable $throwable): ResponseInterface
+    {
+        @ob_end_flush();
+
+        $contents = 'Fatal error: ' . $throwable->getMessage() . ' in ' . $throwable->getFile() . ':' . $throwable->getLine() . "\n";
+        $contents .= "Stack trace:\n";
+        $contents .= $throwable->getTraceAsString();
+
+        return new TextResponse($contents, 500);
     }
 
     /**
@@ -287,7 +314,7 @@ class HttpServer extends Server
      */
     protected function createSwooleServer(): \Swoole\Http\Server
     {
-        $server = new \Swoole\Http\Server('0.0.0.0', $this->getPort());
+        $server = new \Swoole\Http\Server($this->getHost(), $this->getPort());
 
         return $server;
     }
