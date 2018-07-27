@@ -1,0 +1,31 @@
+{
+  "name": "ipaya/swoole-server",
+  "minimum-stability": "stable",
+  "prefer-stable": true,
+  "license": "BSD-3-Clause",
+  "require": {
+    "php": ">=7.1.0",
+    "ext-swoole": ">=2.2.0",
+    "psr/http-server-handler": "^1.0",
+    "symfony/console": "^4.1",
+    "symfony/event-dispatcher": "^4.1",
+    "zendframework/zend-diactoros": "^1.8"
+  },
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://asset-packagist.org"
+    }
+  ],
+  "autoload": {
+    "files": [
+      "src/functions.php"
+    ],
+    "psr-4": {
+      "iPaya\\Swoole\\": "src/Swoole"
+    }
+  },
+  "require-dev": {
+    "eaglewu/swoole-ide-helper": "dev-master"
+  }
+}
